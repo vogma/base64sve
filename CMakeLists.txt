@@ -1,9 +1,9 @@
 cmake_minimum_required(VERSION 3.20 FATAL_ERROR)
 project(base64sve VERSION 0.1 LANGUAGES C)
 
-set(CMAKE_C_COMPILER aarch64-linux-gnu-gcc)
+set(CMAKE_C_COMPILER aarch64-none-linux-gnu-gcc)
 
-ADD_COMPILE_OPTIONS(-march=armv8.4-a+sve -O3 -static -Wall -g)
+ADD_COMPILE_OPTIONS(-march=armv8.4-a+sve+sve2 -O3 -static -Wall -g)
 
 # Add include directories
 include_directories(${PROJECT_SOURCE_DIR}/lib/include)
