@@ -5,6 +5,17 @@ void test(void)
     printf("Hello\n");
 }
 
+void testSaturatingSubstraction(uint8_t *input, uint8_t *output, size_t length)
+{
+    svbool_t predicate = svwhilelt_b8(0, (int)length);
+
+    svuint8_t vec = svld1(predicate, input);
+
+    vec = svqsub_m(predicate, vec, 52);
+
+    svst1(predicate, output, vec);
+}
+
 void testShuffle(uint32_t *input, uint32_t *ouput, size_t length)
 {
 
