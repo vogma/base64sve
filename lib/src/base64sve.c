@@ -5,6 +5,26 @@ void test(void)
     printf("Hello\n");
 }
 
+void testShiftingByMultiplication(uint32_t *input, uint32_t *output, size_t length)
+{
+    svbool_t predicate32 = svwhilelt_b32(0, (int)length);
+
+    svuint32_t vec = svld1(predicate32, input);
+
+    svbool_t predicate16 = svwhilelt_b16(0, (int)length);
+
+    svuint32_t vec_constants = svdup_u32(0x00020004);
+
+    // svuint32_t vec_constants = svdupq_n_u32(0x00800004,0x00800004,0x00800004,0x00800004);
+    // svuint16_t vec_constants = svdup_u16(0x0080);
+    svuint16_t result = svmulh_m(predicate16, svreinterpret_u16(vec), svreinterpret_u16(vec_constants));
+    // svuint32_t result = svmul_m(predicate, vec, vec_constants);
+
+    // svst1_u16(predicate, output, svreinterpret_u16(vec_constants));
+    svst1(predicate32, output, svreinterpret_u32(result));
+
+}
+
 void testSaturatingSubstraction(uint8_t *input, uint8_t *output, size_t length)
 {
     svbool_t predicate = svwhilelt_b8(0, (int)length);
