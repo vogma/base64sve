@@ -21,6 +21,22 @@ void printRegister(svuint8_t vec)
     printf("\n");
 }
 
+void printRegister32(svuint32_t vec)
+{
+    size_t words_per_vec = svcntw();
+    uint32_t memory[words_per_vec];
+
+    svbool_t predicate = svwhilelt_b32(0, (int)words_per_vec);
+    svst1(predicate, memory, vec);
+
+    printf("register contents: ");
+    for (int i = 0; i < words_per_vec; i++)
+    {
+        printf("0x%08X ", memory[i]);
+    }
+    printf("\n");
+}
+
 void base64_encode(void *input, char *output, size_t length)
 {
     size_t bytes_per_vec = svcntb();
@@ -30,6 +46,8 @@ void base64_encode(void *input, char *output, size_t length)
 
     svbool_t predicate8 = svwhilelt_b8(0, (int)bytes_per_round);
     svbool_t predicateMax = svwhilelt_b8(0, (int)bytes_per_vec);
+    svbool_t predicate32Max = svwhilelt_b32(0, (int)bytes_per_round);
+    svbool_t predicate16Max = svwhilelt_b16(0, (int)bytes_per_round);
 
     svuint8_t vec = svld1(predicate8, (uint8_t *)input);
     svuint8_t vec_lookup_table = svld1(predicateMax, encode_lookup_table);
@@ -39,6 +57,27 @@ void base64_encode(void *input, char *output, size_t length)
     vec = svtbl(vec, vec_lookup_table);
 
     printRegister(vec);
+
+    // populate vector registers with shift values
+    svuint32_t vec_shift_ac = svdup_u32(0x04000040);
+    svuint32_t vec_shift_bd = svdup_u32(0x01000010);
+
+    svuint32_t data = svreinterpret_u32(vec);
+
+    printRegister32(data);
+
+
+    // mask out indices ac and bd
+    svuint32_t vec_ac = svand_m(predicate32Max, data, 0x0FC0FC00);
+    svuint32_t vec_bd = svand_m(predicate32Max, data, 0x0FC0FC00);
+
+    svuint16_t vec_shifted_ac = svmulh_m(predicate16Max, svreinterpret_u16(vec_ac), svreinterpret_u16(vec_shift_ac));
+    svuint16_t vec_shifted_bd = svmul_m(predicate16Max, svreinterpret_u16(vec_bd), svreinterpret_u16(vec_shift_bd));
+
+    svuint32_t vec_index = svorr_m(predicate32Max, svreinterpret_u32(vec_shifted_ac), svreinterpret_u32(vec_shifted_bd));
+
+    printRegister32(vec_index);
+
 
     svst1(predicate8, (int8_t *)output, svreinterpret_s8(vec));
 
