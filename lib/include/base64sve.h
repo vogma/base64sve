@@ -1,12 +1,9 @@
 #include <stdio.h>
+
+#ifdef __ARM_FEATURE_SVE
 #include <arm_sve.h>
+#endif /* __ARM_FEATURE_SVE */
+
 #include <stdint.h>
-
-void test(void);
-
-void testShiftingByMultiplication(uint32_t *input, uint32_t *output, size_t length);
-void testSaturatingSubstraction(uint8_t *input, uint8_t *output, size_t length);
-void testShuffle(uint32_t *input, uint32_t *ouput, size_t length);
-void vec_add_sve_intrinsics(int *restrict out, int *restrict a, int *restrict b, int length);
 
 void base64_encode(void *input, char *output, size_t length);
