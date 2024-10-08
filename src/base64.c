@@ -32,7 +32,11 @@ int main(void)
     base64_encode(data, output, N);
     // printArray(output, N);
 
-    printf("%s\n",output);
+    for (int i = 0; i < N; i++)
+    {
+        printf("%c ", output[i]);
+    }
+    printf("\n");
 
     return 0;
 }
