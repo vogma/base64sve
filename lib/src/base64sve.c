@@ -1,4 +1,8 @@
 #include <base64sve.h>
+#include <limits.h>
+
+static const uint8_t encode_lookup_table[] = {1, 0, 2, 1, 4, 3, 5, 4, 7, 6, 8, 7, 10, 9, 11, 10, 13, 12, 14, 13, 16, 15, 17, 16, 19, 18, 20, 19, 22, 21, 23, 22, 25, 24, 26, 25, 28, 27, 29, 28, 31, 30, 32, 31, 34, 33, 35, 34, 37, 36, 38, 37, 40, 39, 41, 40, 43, 42, 44, 43, 46, 45, 47, 46, 49, 48, 50, 49, 52, 51, 53, 52, 55, 54, 56, 55, 58, 57, 59, 58, 61, 60, 62, 61};
+static const int8_t offsets[68] = {71, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -19, -16, 65, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 void printRegister(svuint8_t vec)
 {
@@ -35,22 +39,23 @@ void printRegister32(svuint32_t vec)
 void base64_encode(void *input, char *output, size_t length)
 {
     size_t bytes_per_vec = svcntb();
+
+    // calculate how many bytes will be processed per loop iteration
     size_t bytes_per_round = (bytes_per_vec / 4) * 3;
 
-    const uint8_t encode_lookup_table[] = {1, 0, 2, 1, 4, 3, 5, 4, 7, 6, 8, 7, 10, 9, 11, 10, 13, 12, 14, 13, 16, 15, 17, 16, 19, 18, 20, 19, 22, 21, 23, 22, 25, 24, 26, 25, 28, 27, 29, 28, 31, 30, 32, 31, 34, 33, 35, 34, 37, 36, 38, 37, 40, 39, 41, 40, 43, 42, 44, 43, 46, 45, 47, 46, 49, 48, 50, 49, 52, 51, 53, 52, 55, 54, 56, 55, 58, 57, 59, 58, 61, 60, 62, 61};
-    static const int8_t offsets[68] = {71, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -19, -16, 65, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-
+    // set needed predicates
     svbool_t predicate8 = svwhilelt_b8(0, (int)bytes_per_round);
-    svbool_t predicateMax = svwhilelt_b8(0, (int)bytes_per_vec);
-    svbool_t predicate32Max = svwhilelt_b32(0, (int)bytes_per_round);
-    svbool_t predicate16Max = svwhilelt_b16(0, (int)bytes_per_round);
+    svbool_t predicateMax = svwhilelt_b8(0, INT_MAX);
+    svbool_t predicate32Max = svwhilelt_b32(0, INT_MAX);
+    svbool_t predicate16Max = svwhilelt_b16(0, INT_MAX);
+
+    svuint8_t vec_lookup_table = svld1(predicateMax, encode_lookup_table);
+    svint8_t offset_vec = svld1(predicateMax, offsets);
 
     for (; length >= bytes_per_round; length -= bytes_per_round, output += bytes_per_vec, input += bytes_per_round)
     {
+        // load input data into vector register
         svuint8_t vec = svld1(predicate8, (uint8_t *)input);
-
-        svuint8_t vec_lookup_table = svld1(predicateMax, encode_lookup_table);
-        svint8_t offset_vec = svld1(predicateMax, offsets);
 
         vec = svtbl(vec, vec_lookup_table);
 
@@ -76,11 +81,9 @@ void base64_encode(void *input, char *output, size_t length)
 
         const svuint8_t vec_lookup = svadd_m(mask_lower_26, saturated_vec, 13);
 
-        offset_vec = svtbl(offset_vec, vec_lookup);
+        svint8_t shuffled_offset_vec = svtbl(offset_vec, vec_lookup);
 
-        const svint8_t ascii_vec = svadd_m(predicateMax, svreinterpret_s8(vec_index), offset_vec);
-
-        printRegister(svreinterpret_u8(ascii_vec));
+        const svint8_t ascii_vec = svadd_m(predicateMax, svreinterpret_s8(vec_index), shuffled_offset_vec);
 
         svst1(predicateMax, (int8_t *)output, ascii_vec);
     }

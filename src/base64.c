@@ -32,9 +32,11 @@ int main(void)
     base64_encode(data, output, N);
     // printArray(output, N);
 
+    printf("SGFsbG9EYXNJc3RlaW5UZXN0d2llZ2VodGVzZGlyQVZDQg==\n");
+
     for (int i = 0; i < N; i++)
     {
-        printf("%c ", output[i]);
+        printf("%c", output[i]);
     }
     printf("\n");
 
