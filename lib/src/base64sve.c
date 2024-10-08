@@ -69,7 +69,11 @@ void base64_encode(void *input, char *output, size_t length)
 
     // mask out indices ac and bd
     svuint32_t vec_ac = svand_m(predicate32Max, data, 0x0FC0FC00);
-    svuint32_t vec_bd = svand_m(predicate32Max, data, 0x0FC0FC00);
+    svuint32_t vec_bd = svand_m(predicate32Max, data, 0x003F03F0);
+
+    printRegister32(vec_ac);
+    printRegister32(vec_bd);
+
 
     svuint16_t vec_shifted_ac = svmulh_m(predicate16Max, svreinterpret_u16(vec_ac), svreinterpret_u16(vec_shift_ac));
     svuint16_t vec_shifted_bd = svmul_m(predicate16Max, svreinterpret_u16(vec_bd), svreinterpret_u16(vec_shift_bd));
