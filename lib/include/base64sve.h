@@ -1,5 +1,5 @@
-#ifndef LIBB64RVV_H
-#define LIBB64RVV_H
+#ifndef LIBB64SVE_H
+#define LIBB64SVE_H
 
 #ifdef __cplusplus
 extern "C"
@@ -13,9 +13,10 @@ extern "C"
 #endif /* __ARM_FEATURE_SVE */
 
 #include <stdint.h>
+    void sayHello();
 
-    void base64_encode(void *input, char *output, size_t length);
-    void base64_decode(char *base64_data, void *output, size_t encoded_length, size_t *decoded_length);
+    void base64sve_encode(void *input, char *output, size_t length);
+    void base64sve_decode(char *base64_data, void *output, size_t encoded_length, size_t *decoded_length);
 
 #ifdef __cplusplus
 }

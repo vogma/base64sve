@@ -6,6 +6,11 @@ static const int8_t offsets[68] = {71, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -
 
 static const unsigned char b64chars[65] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
+void sayHello()
+{
+    printf("haaaaaaaaaaaaaaaaaaaaaaaaaaaaallllo\n");
+}
+
 /**
  * scalar tail encoding routine
  */
@@ -45,7 +50,7 @@ void base64_encode_tail(char *encoded, const void *data, size_t len)
     *p++ = '\0';
 }
 
-void base64_encode(void *input, char *output, size_t length)
+void base64sve_encode(void *input, char *output, size_t length)
 {
     // store number of bytes each vector register can hold
     size_t bytes_per_vec = svcntb();
