@@ -5,7 +5,7 @@ project(base64sve VERSION 0.1 LANGUAGES C)
 
 set(CMAKE_C_COMPILER aarch64-none-linux-gnu-gcc)
 
-ADD_COMPILE_OPTIONS(-march=armv8.4-a+sve+sve2 -O3 -static -Wall -g)
+ADD_COMPILE_OPTIONS(-march=armv8.4-a+sve -O3 -static -Wall -g)
 
 # check_c_source_runs(
 #     "

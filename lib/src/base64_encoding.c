@@ -86,7 +86,7 @@ void base64_encode(void *input, char *output, size_t length)
         svuint32_t vec_index = svorr_m(predicate32Max, svreinterpret_u32(vec_shifted_ac), svreinterpret_u32(vec_shifted_bd));
 
         // saturated substraction
-        svuint8_t saturated_vec = svqsub_m(predicateMax, svreinterpret_u8(vec_index), 52);
+        svuint8_t saturated_vec = svqsub(svreinterpret_u8(vec_index), 52);
 
         // extract mask of values lower than 26
         svbool_t mask_lower_26 = svcmplt_n_u8(predicateMax, svreinterpret_u8(vec_index), 26);
