@@ -20,21 +20,28 @@ void printArray(uint8_t *input, int length)
 
 #define N 34
 
+static int Base64encode_len(int len)
+{
+    return ((len + 2) / 3 * 4) + 1;
+}
+
 int main(void)
 {
 
     // uint8_t data[N] = {0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0x01, 0x02, 0x03, 0x04, 0XFA};
     char data[N] = "HalloDasIsteinTestwiegehtesdirAVCB";
 
-    char output[N] = {0};
+    const size_t encoded_length = Base64encode_len(N);
+    char output[encoded_length] = {};
 
     // printArray(data, N);
     base64_encode(data, output, N);
     // printArray(output, N);
 
+    // Erwartetes Ergebnis
     printf("SGFsbG9EYXNJc3RlaW5UZXN0d2llZ2VodGVzZGlyQVZDQg==\n");
 
-    for (int i = 0; i < N; i++)
+    for (int i = 0; i < encoded_length; i++)
     {
         printf("%c", output[i]);
     }
