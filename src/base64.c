@@ -32,7 +32,7 @@ int main(void)
     char data[N] = "HalloDasIsteinTestwiegehtesdirAVCB";
 
     const size_t encoded_length = Base64encode_len(N);
-    char output[encoded_length] = {};
+    char output[encoded_length];
 
     // printArray(data, N);
     base64_encode(data, output, N);
@@ -49,7 +49,7 @@ int main(void)
 
     char base64_data[48] = "SGFsbG9EYXNJc3RlaW5UZXN0d2llZ2VodGVzZGlyQVZDQg==";
     char result[48];
-    size_t decoded_length;
+    size_t decoded_length=0;
 
     base64_decode(base64_data, result, 48, &decoded_length);
 
@@ -59,7 +59,7 @@ int main(void)
     }
     printf("\n");
 
-    for (int i = 0; i < 48; i++)
+    for (int i = 0; i < decoded_length; i++)
     {
         printf("%c", result[i]);
     }
