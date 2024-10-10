@@ -45,6 +45,24 @@ int main(void)
     {
         printf("%c", output[i]);
     }
+    printf("\n\n");
+
+    char base64_data[48] = "SGFsbG9EYXNJc3RlaW5UZXN0d2llZ2VodGVzZGlyQVZDQg==";
+    char result[48];
+    size_t decoded_length;
+
+    base64_decode(base64_data, result, 48, &decoded_length);
+
+    for (int i = 0; i < 48; i++)
+    {
+        printf("0x%02X ", base64_data[i]);
+    }
+    printf("\n");
+
+    for (int i = 0; i < 48; i++)
+    {
+        printf("%c", result[i]);
+    }
     printf("\n");
 
     return 0;

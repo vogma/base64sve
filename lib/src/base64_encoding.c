@@ -4,38 +4,6 @@
 static const uint8_t encode_lookup_table[] = {1, 0, 2, 1, 4, 3, 5, 4, 7, 6, 8, 7, 10, 9, 11, 10, 13, 12, 14, 13, 16, 15, 17, 16, 19, 18, 20, 19, 22, 21, 23, 22, 25, 24, 26, 25, 28, 27, 29, 28, 31, 30, 32, 31, 34, 33, 35, 34, 37, 36, 38, 37, 40, 39, 41, 40, 43, 42, 44, 43, 46, 45, 47, 46, 49, 48, 50, 49, 52, 51, 53, 52, 55, 54, 56, 55, 58, 57, 59, 58, 61, 60, 62, 61};
 static const int8_t offsets[68] = {71, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -19, -16, 65, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-void printRegister(svuint8_t vec)
-{
-    size_t bytes_per_vec = svcntb();
-    uint8_t memory[bytes_per_vec];
-
-    svbool_t predicate = svwhilelt_b8(0, (int)bytes_per_vec);
-    svst1(predicate, memory, vec);
-
-    printf("register contents: ");
-    for (int i = 0; i < bytes_per_vec; i++)
-    {
-        printf("%c ", memory[i]);
-    }
-    printf("\n");
-}
-
-void printRegister32(svuint32_t vec)
-{
-    size_t words_per_vec = svcntw();
-    uint32_t memory[words_per_vec];
-
-    svbool_t predicate = svwhilelt_b32(0, (int)words_per_vec);
-    svst1(predicate, memory, vec);
-
-    printf("register contents: ");
-    for (int i = 0; i < words_per_vec; i++)
-    {
-        printf("0x%08X ", memory[i]);
-    }
-    printf("\n");
-}
-
 static const unsigned char b64chars[65] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 /**
