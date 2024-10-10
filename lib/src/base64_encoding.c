@@ -88,8 +88,8 @@ void base64_encode(void *input, char *output, size_t length)
     // set needed predicates
     svbool_t predicate8 = svwhilelt_b8(0, (int)bytes_per_round);
     svbool_t predicateMax = svptrue_b8();
-    svbool_t predicate32Max = svwhilelt_b32(0, INT_MAX);
-    svbool_t predicate16Max = svwhilelt_b16(0, INT_MAX);
+    svbool_t predicate32Max = svptrue_b32();
+    svbool_t predicate16Max = svptrue_b16();
 
     svuint8_t vec_lookup_table = svld1(predicateMax, encode_lookup_table);
     svint8_t offset_vec = svld1(predicateMax, offsets);
