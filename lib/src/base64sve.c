@@ -36,8 +36,50 @@ void printRegister32(svuint32_t vec)
     printf("\n");
 }
 
+static const unsigned char b64chars[65] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+/**
+ * scalar tail encoding routine
+ */
+void base64_encode_tail(char *encoded, const void *data, size_t len)
+{
+    size_t i;
+    char *p;
+
+    uint8_t *input = (uint8_t *)data;
+
+    p = encoded;
+    for (i = 0; i < len - 2; i += 3)
+    {
+        *p++ = b64chars[(input[i] >> 2) & 0x3F];
+        *p++ = b64chars[((input[i] & 0x3) << 4) |
+                        ((int)(input[i + 1] & 0xF0) >> 4)];
+        *p++ = b64chars[((input[i + 1] & 0xF) << 2) |
+                        ((int)(input[i + 2] & 0xC0) >> 6)];
+        *p++ = b64chars[input[i + 2] & 0x3F];
+    }
+    if (i < len)
+    {
+        *p++ = b64chars[(input[i] >> 2) & 0x3F];
+        if (i == (len - 1))
+        {
+            *p++ = b64chars[((input[i] & 0x3) << 4)];
+            *p++ = '=';
+        }
+        else
+        {
+            *p++ = b64chars[((input[i] & 0x3) << 4) |
+                            ((int)(input[i + 1] & 0xF0) >> 4)];
+            *p++ = b64chars[((input[i + 1] & 0xF) << 2)];
+        }
+        *p++ = '=';
+    }
+    *p++ = '\0';
+}
+
 void base64_encode(void *input, char *output, size_t length)
 {
+    // store number of bytes each vector register can hold
     size_t bytes_per_vec = svcntb();
 
     // calculate how many bytes will be processed per loop iteration
@@ -45,7 +87,7 @@ void base64_encode(void *input, char *output, size_t length)
 
     // set needed predicates
     svbool_t predicate8 = svwhilelt_b8(0, (int)bytes_per_round);
-    svbool_t predicateMax = svwhilelt_b8(0, INT_MAX);
+    svbool_t predicateMax = svptrue_b8();
     svbool_t predicate32Max = svwhilelt_b32(0, INT_MAX);
     svbool_t predicate16Max = svwhilelt_b16(0, INT_MAX);
 
@@ -75,16 +117,32 @@ void base64_encode(void *input, char *output, size_t length)
         // first step finished
         svuint32_t vec_index = svorr_m(predicate32Max, svreinterpret_u32(vec_shifted_ac), svreinterpret_u32(vec_shifted_bd));
 
+        // saturated substraction
         svuint8_t saturated_vec = svqsub_m(predicateMax, svreinterpret_u8(vec_index), 52);
 
+        // extract mask of values lower than 26
         svbool_t mask_lower_26 = svcmplt_n_u8(predicateMax, svreinterpret_u8(vec_index), 26);
 
+        // all values, which were lower than 26 will be set to 13
         const svuint8_t vec_lookup = svadd_m(mask_lower_26, saturated_vec, 13);
 
+        // register shuffle with offset vector
         svint8_t shuffled_offset_vec = svtbl(offset_vec, vec_lookup);
 
+        // add offset values to the indices to compute base64 characters without memory lookup
         const svint8_t ascii_vec = svadd_m(predicateMax, svreinterpret_s8(vec_index), shuffled_offset_vec);
 
+        // store whole vector register to memory
         svst1(predicateMax, (int8_t *)output, ascii_vec);
     }
+    // because we process 'bytes_per_round' bytes in each loop iteration,
+    // there may be more data to be encoded if length % bytes_per_round != 0, this data will be encoded with a scalar encoding algorithm
+    if (length != 0)
+    {
+        base64_encode_tail(output, input, length);
+    }
+}
+
+void base64_decode(char *base64_data, uint8_t *output, size_t encoded_length)
+{
 }
