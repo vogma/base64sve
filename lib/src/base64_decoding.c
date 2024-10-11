@@ -124,7 +124,7 @@ unsigned int base64_decode_tail(const char *in, unsigned int inlen, uint8_t *out
     return j;
 }
 
-void base64_decode(char *base64_data, void *output, size_t encoded_length, size_t *decoded_length)
+void base64sve_decode(char *base64_data, void *output, size_t encoded_length, size_t *decoded_length)
 {
     size_t bytes_per_register = svcntb();
     size_t output_bytes_per_round = (bytes_per_register / 4) * 3;
