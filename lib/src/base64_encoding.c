@@ -66,7 +66,7 @@ void base64_encode_tail(char *encoded, const void *data, size_t len)
 //     printf("\n");
 // }
 
-void base64_encode(void *input, char *output, size_t length)
+void base64sve_encode(void *input, char *output, size_t length)
 {
     // store number of bytes each vector register can hold
     size_t bytes_per_vec = svcntb();
