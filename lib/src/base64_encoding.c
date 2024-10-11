@@ -45,6 +45,22 @@ void base64_encode_tail(char *encoded, const void *data, size_t len)
     *p++ = '\0';
 }
 
+// void printRegister(svuint8_t vec)
+// {
+//     size_t bytes_per_vec = svcntb();
+//     uint8_t memory[bytes_per_vec];
+
+//     svbool_t predicate = svwhilelt_b8(0, (int)bytes_per_vec);
+//     svst1(predicate, memory, vec);
+
+//     printf("register contents: ");
+//     for (int i = 0; i < bytes_per_vec; i++)
+//     {
+//         printf("0x%02X ", memory[i]);
+//     }
+//     printf("\n");
+// }
+
 void base64_encode(void *input, char *output, size_t length)
 {
     // store number of bytes each vector register can hold
@@ -62,8 +78,9 @@ void base64_encode(void *input, char *output, size_t length)
     svuint8_t vec_lookup_table = svld1(predicateMax, encode_lookup_table);
     svint8_t offset_vec = svld1(predicateMax, offsets);
 
-    for (; length >= bytes_per_round; length -= bytes_per_round, output += bytes_per_vec, input += bytes_per_round)
+    for (; length-2 >= bytes_per_round; length -= bytes_per_round, output += bytes_per_vec, input += bytes_per_round)
     {
+
         // load input data into vector register
         svuint8_t vec = svld1(predicate8, (uint8_t *)input);
 
@@ -86,13 +103,15 @@ void base64_encode(void *input, char *output, size_t length)
         svuint32_t vec_index = svorr_m(predicate32Max, svreinterpret_u32(vec_shifted_ac), svreinterpret_u32(vec_shifted_bd));
 
         // saturated substraction
-        svuint8_t saturated_vec = svqsub(svreinterpret_u8(vec_index), 52);
+        svuint8_t saturated_vec = svqsub(svreinterpret_u8(vec_index), 51);
 
         // extract mask of values lower than 26
         svbool_t mask_lower_26 = svcmplt_n_u8(predicateMax, svreinterpret_u8(vec_index), 26);
 
         // all values, which were lower than 26 will be set to 13
         const svuint8_t vec_lookup = svadd_m(mask_lower_26, saturated_vec, 13);
+
+        
 
         // register shuffle with offset vector
         svint8_t shuffled_offset_vec = svtbl(offset_vec, vec_lookup);
