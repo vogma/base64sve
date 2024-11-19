@@ -178,3 +178,68 @@ void base64sve_decode(char *base64_data, void *output, size_t encoded_length, si
 
     *decoded_length = output_length;
 }
+
+void base64sve_decode_x2(char *base64_data, void *output, size_t encoded_length, size_t *decoded_length)
+{
+    size_t bytes_per_register = svcntb() * 2;
+    size_t output_bytes_per_round = (bytes_per_register / 4) * 3;
+
+    // set needed predicates
+    svbool_t predicateSave = svwhilelt_b8(0, (int)output_bytes_per_round);
+    svbool_t predicate8Max = svptrue_b8();
+    svbool_t predicate32Max = svptrue_b32();
+
+    const svint8_t shift_lut_vec = svld1(predicate8Max, shift_lut);
+    const svuint8_t index_decode_lut_vec = svld1(predicate8Max, index_decode);
+
+    size_t output_length = 0;
+
+    for (; encoded_length - 1 >= bytes_per_register; encoded_length -= bytes_per_register, base64_data += bytes_per_register, output += output_bytes_per_round, output_length += output_bytes_per_round)
+    {
+        svint8_t data_vec = svld1(predicate8Max, (int8_t *)base64_data);
+
+        svint8_t higher_nibble = svasr_m(predicate8Max, data_vec, 4);
+
+        svbool_t eq = svcmpeq(predicate8Max, data_vec, 0x2f);
+
+        svint8_t shift_vec = svtbl(shift_lut_vec, svreinterpret_u8(higher_nibble));
+
+        data_vec = svadd_m(predicate8Max, data_vec, shift_vec);
+
+        data_vec = svadd_m(eq, data_vec, -3);
+
+        svuint32_t data_vec32 = svreinterpret_u32(data_vec);
+
+        svuint32_t ac_vec = svand_m(predicate32Max, data_vec32, 0x003f003f);
+        ac_vec = svlsl_m(predicate32Max, ac_vec, 6);
+
+        svuint32_t bd_vec = svand_m(predicate32Max, data_vec32, 0x3f003f00);
+        bd_vec = svlsr_m(predicate32Max, bd_vec, 8);
+
+        svuint32_t t0 = svorr_m(predicate32Max, ac_vec, bd_vec);
+        svuint32_t t1 = svlsl_m(predicate32Max, t0, 12);
+        svuint32_t t2 = svlsr_m(predicate32Max, t0, 16);
+
+        svuint32_t packed_data = svorr_m(predicate32Max, t1, t2);
+
+        svuint8_t result = svtbl(svreinterpret_u8(packed_data), index_decode_lut_vec);
+
+        svst1(predicateSave, (uint8_t *)output, result);
+    }
+    if (encoded_length != 0)
+    {
+        output_length += base64_decode_tail(base64_data, encoded_length, (uint8_t *)output);
+    }
+
+    *decoded_length = output_length;
+}
+
+void testTuple(uint64_t *data, uint64_t *output, size_t length)
+{
+    size_t doubles_per_register = svcntd();
+    svbool_t predicate8Max = svptrue_b64();
+
+    svuint64x2_t data_vec = svld2(predicate8Max, data);
+
+    svst2(predicate8Max, output, data_vec);
+}
