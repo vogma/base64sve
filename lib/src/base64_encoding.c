@@ -60,6 +60,23 @@ void base64_encode_tail(char *encoded, const void *data, size_t len)
 //     }
 //     printf("\n");
 // }
+svuint8_t createLookupIndices(svbool_t predicate32, svbool_t predicate8)
+{
+    svuint32_t index_reg = svindex_u32(0, 1);
+    svuint32_t shift8 = svlsl_m(predicate32, index_reg, 8);
+    svuint32_t shift16 = svlsl_m(predicate32, index_reg, 16);
+    svuint32_t shift24 = svlsl_m(predicate32, index_reg, 24);
+
+    shift8 = svorr_m(predicate32, shift8, shift16);
+    shift8 = svorr_m(predicate32, shift8, shift24);
+    index_reg = svorr_m(predicate32, shift8, index_reg);
+
+    const svuint8_t const_vec_3 = svdup_n_u8(3);
+    const svuint8_t const_index_vec = svreinterpret_u8(svdup_n_u32(0x01020001));
+
+    svuint8_t index_vec = svmul_m(predicate8, svreinterpret_u8(index_reg), const_vec_3);
+    return svadd_m(predicate8, index_vec, const_index_vec);
+}
 
 void base64sve_encode(void *input, char *output, size_t length)
 {
