@@ -4,8 +4,7 @@
 static const uint8_t encode_lookup_table[] = {1, 0, 2, 1, 4, 3, 5, 4, 7, 6, 8, 7, 10, 9, 11, 10, 13, 12, 14, 13, 16, 15, 17, 16, 19, 18, 20, 19, 22, 21, 23, 22, 25, 24, 26, 25, 28, 27, 29, 28, 31, 30, 32, 31, 34, 33, 35, 34, 37, 36, 38, 37, 40, 39, 41, 40, 43, 42, 44, 43, 46, 45, 47, 46, 49, 48, 50, 49, 52, 51, 53, 52, 55, 54, 56, 55, 58, 57, 59, 58, 61, 60, 62, 61};
 static const int8_t offsets[68] = {71, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -19, -16, 65, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-static const uint8_t shuffle_table[] = {2, 3, 1, 0, 6, 7, 5, 4, 10, 11, 9, 8, 14, 15, 13, 12, 18, 19, 17, 16, 22, 23, 21, 20, 26, 27, 25, 24, 30, 31, 29, 28, 34, 35, 33, 32, 38, 39, 37, 36, 42, 43, 41, 40, 46, 47, 45, 44, 50, 51, 49, 48, 54, 55, 53, 52, 58, 59, 57, 56, 62, 63, 61, 60, 66, 67, 65, 64};
-
+static const uint8_t shuffle_table[64] = { 2, 1, 0, 1, 5, 4, 3, 4, 8, 7, 6, 7, 11, 10, 9, 10, 14, 13, 12, 13, 17, 16, 15, 16, 20, 19, 18, 19, 23, 22, 21, 22, 26, 25, 24, 25, 29, 28, 27, 28, 32, 31, 30, 31, 35, 34, 33, 34, 38, 37, 36, 37, 41, 40, 39, 40, 44, 43, 42, 43, 47, 46, 45, 46 };
 static const unsigned char b64chars[65] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 /**
@@ -188,15 +187,9 @@ void base64sve_encode_bdep(void *input, char *output, size_t length)
 
         // load input data into vector register
         svuint8_t vec = svld1(predicate8, (uint8_t *)input);
-
-        vec = svtbl(vec, vec_lookup_table);
-
-        svuint32_t data = svreinterpret_u32(vec);
-
-        svuint8_t data_u8 = svreinterpret_u8(data);
-        data_u8 = svtbl(data_u8, shuffle_vec);
-        data_u8 = svreinterpret_u8(svbdep(svreinterpret_u32(data_u8), pdep_mask_vec));
-        svuint32_t vec_index = svrevb_m(svdup_n_u32(0x00000000), predicate32Max, svreinterpret_u32(data_u8));
+        vec = svtbl(vec, shuffle_vec);
+        vec = svreinterpret_u8(svbdep(svreinterpret_u32(vec), pdep_mask_vec));
+        svuint32_t vec_index = svrevb_m(svdup_n_u32(0x00000000), predicate32Max, svreinterpret_u32(vec));
 
         // saturated substraction
         svuint8_t saturated_vec = svqsub(svreinterpret_u8(vec_index), 51);
