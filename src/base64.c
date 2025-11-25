@@ -37,7 +37,8 @@ int main(void)
     char output2[encoded_length];
 
     base64sve_encode_bdep(data, output, N);
-    base64sve_encode_bdep(data, output2, N);
+    printf("\n\n");
+    base64sve_encode_bdep_unrolled(data, output2, N);
 
 
     for (int i = 0; i < encoded_length; i++)
@@ -47,7 +48,7 @@ int main(void)
     printf("\n\n");
     for (int i = 0; i < encoded_length; i++)
     {
-        printf("%c", output[i]);
+        printf("%c", output2[i]);
     }
     printf("\n\n");
     return 0;

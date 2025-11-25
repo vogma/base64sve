@@ -16,6 +16,7 @@ extern "C"
 
     void base64sve_encode_shift(void *input, char *output, size_t length);
     void base64sve_encode_bdep(void *input, char *output, size_t length);
+    void base64sve_encode_bdep_unrolled(void *input, char *output, size_t length);
 
     void base64sve_encode_x2(void *input, char *output, size_t length);
     void base64sve_decode(char *base64_data, void *output, size_t encoded_length, size_t *decoded_length);

@@ -2,9 +2,8 @@
 #include <limits.h>
 
 static const uint8_t encode_lookup_table[] = {1, 0, 2, 1, 4, 3, 5, 4, 7, 6, 8, 7, 10, 9, 11, 10, 13, 12, 14, 13, 16, 15, 17, 16, 19, 18, 20, 19, 22, 21, 23, 22, 25, 24, 26, 25, 28, 27, 29, 28, 31, 30, 32, 31, 34, 33, 35, 34, 37, 36, 38, 37, 40, 39, 41, 40, 43, 42, 44, 43, 46, 45, 47, 46, 49, 48, 50, 49, 52, 51, 53, 52, 55, 54, 56, 55, 58, 57, 59, 58, 61, 60, 62, 61};
+static const uint8_t encode_lookup_table_pdep[] = {2, 1, 0, 1, 5, 4, 3, 4, 8, 7, 6, 7, 11, 10, 9, 10, 14, 13, 12, 13, 17, 16, 15, 16, 20, 19, 18, 19, 23, 22, 21, 22, 26, 25, 24, 25, 29, 28, 27, 28, 32, 31, 30, 31, 35, 34, 33, 34, 38, 37, 36, 37, 41, 40, 39, 40, 44, 43, 42, 43, 47, 46, 45, 46, 50, 49, 48, 49, 53, 52, 51, 52, 56, 55, 54, 55, 59, 58, 57, 58};
 static const int8_t offsets[68] = {71, -4, -4, -4, -4, -4, -4, -4, -4, -4, -4, -19, -16, 65, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-
-static const uint8_t shuffle_table[] = {2, 3, 1, 0, 6, 7, 5, 4, 10, 11, 9, 8, 14, 15, 13, 12, 18, 19, 17, 16, 22, 23, 21, 20, 26, 27, 25, 24, 30, 31, 29, 28, 34, 35, 33, 32, 38, 39, 37, 36, 42, 43, 41, 40, 46, 47, 45, 44, 50, 51, 49, 48, 54, 55, 53, 52, 58, 59, 57, 56, 62, 63, 61, 60, 66, 67, 65, 64};
 
 static const unsigned char b64chars[65] = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
@@ -47,37 +46,37 @@ void base64_encode_tail(char *encoded, const void *data, size_t len)
     *p++ = '\0';
 }
 
-void printRegister(svuint8_t vec)
-{
-    size_t bytes_per_vec = svcntb();
-    uint8_t memory[bytes_per_vec];
+// void printRegister(svuint8_t vec)
+// {
+//     size_t bytes_per_vec = svcntb();
+//     uint8_t memory[bytes_per_vec];
 
-    svbool_t predicate = svwhilelt_b8(0, (int)bytes_per_vec);
-    svst1(predicate, memory, vec);
+//     svbool_t predicate = svwhilelt_b8(0, (int)bytes_per_vec);
+//     svst1(predicate, memory, vec);
 
-    // printf("register contents: ");
-    for (int i = 0; i < bytes_per_vec; i++)
-    {
-        printf("0x%02X ", memory[i]);
-    }
-    printf("\n");
-}
+//     // printf("register contents: ");
+//     for (int i = 0; i < bytes_per_vec; i++)
+//     {
+//         printf("0x%02X ", memory[i]);
+//     }
+//     printf("\n");
+// }
 
-void printRegister32(svuint32_t vec)
-{
-    size_t words_per_vec = svcntw();
-    uint32_t memory[words_per_vec];
+// void printRegister32(svuint32_t vec)
+// {
+//     size_t words_per_vec = svcntw();
+//     uint32_t memory[words_per_vec];
 
-    svbool_t predicate = svwhilelt_b32(0, (int)words_per_vec);
-    svst1(predicate, memory, vec);
+//     svbool_t predicate = svwhilelt_b32(0, (int)words_per_vec);
+//     svst1(predicate, memory, vec);
 
-    // printf("register contents: ");
-    for (int i = 0; i < words_per_vec; i++)
-    {
-        printf("0x%08X ", memory[i]);
-    }
-    printf("\n");
-}
+//     // printf("register contents: ");
+//     for (int i = 0; i < words_per_vec; i++)
+//     {
+//         printf("0x%08X ", memory[i]);
+//     }
+//     printf("\n");
+// }
 
 svuint8_t createLookupIndices(svbool_t predicate32, svbool_t predicate8)
 {
@@ -164,7 +163,7 @@ void base64sve_encode_shift(void *input, char *output, size_t length)
     }
 }
 
-void base64sve_encode_bdep(void *input, char *output, size_t length)
+void base64sve_encode_bdep(void *input, char * restrict output, size_t length)
 {
     // store number of bytes each vector register can hold
     size_t bytes_per_vec = svcntb();
@@ -177,8 +176,7 @@ void base64sve_encode_bdep(void *input, char *output, size_t length)
     svbool_t predicateMax = svptrue_b8();
     svbool_t predicate32Max = svptrue_b32();
 
-    svuint8_t vec_lookup_table = svld1(predicateMax, encode_lookup_table);
-    svuint8_t shuffle_vec = svld1(predicateMax, shuffle_table);
+    svuint8_t vec_lookup_table = svld1(predicateMax, encode_lookup_table_pdep);
     svint8_t offset_vec = svld1(predicateMax, offsets);
 
     svuint32_t pdep_mask_vec = svdup_n_u32(0x3f3f3f3f);
@@ -188,15 +186,9 @@ void base64sve_encode_bdep(void *input, char *output, size_t length)
 
         // load input data into vector register
         svuint8_t vec = svld1(predicate8, (uint8_t *)input);
-
         vec = svtbl(vec, vec_lookup_table);
-
-        svuint32_t data = svreinterpret_u32(vec);
-
-        svuint8_t data_u8 = svreinterpret_u8(data);
-        data_u8 = svtbl(data_u8, shuffle_vec);
-        data_u8 = svreinterpret_u8(svbdep(svreinterpret_u32(data_u8), pdep_mask_vec));
-        svuint32_t vec_index = svrevb_m(svdup_n_u32(0x00000000), predicate32Max, svreinterpret_u32(data_u8));
+        vec = svreinterpret_u8(svbdep(svreinterpret_u32(vec), pdep_mask_vec));
+        svuint32_t vec_index = svrevb_m(svdup_n_u32(0x00000000), predicate32Max, svreinterpret_u32(vec));
 
         // saturated substraction
         svuint8_t saturated_vec = svqsub(svreinterpret_u8(vec_index), 51);
@@ -224,83 +216,79 @@ void base64sve_encode_bdep(void *input, char *output, size_t length)
     }
 }
 
-void base64sve_encode_x2(void *input, char *output, size_t length)
+void base64sve_encode_bdep_unrolled(void *input, char * restrict output, size_t length)
 {
     // store number of bytes each vector register can hold
     size_t bytes_per_vec = svcntb();
-    size_t input_slice = (bytes_per_vec / 4) * 3;
 
     // calculate how many bytes will be processed per loop iteration
-    size_t bytes_per_round = ((bytes_per_vec * 2) / 4) * 3;
+    size_t bytes_per_round = (bytes_per_vec / 4) * 3;
 
     // set needed predicates
     svbool_t predicate8 = svwhilelt_b8(0, (int)bytes_per_round);
     svbool_t predicateMax = svptrue_b8();
     svbool_t predicate32Max = svptrue_b32();
-    svbool_t predicate16Max = svptrue_b16();
 
-    svuint8_t vec_lookup_table = svld1(predicateMax, encode_lookup_table);
+    svuint8_t vec_lookup_table = svld1(predicateMax, encode_lookup_table_pdep);
     svint8_t offset_vec = svld1(predicateMax, offsets);
 
-    for (; length - 2 >= bytes_per_round; length -= bytes_per_round)
+    svuint32_t pdep_mask_vec = svdup_n_u32(0x3f3f3f3f);
+
+    for (; length - 2 >= bytes_per_round * 4; length -= bytes_per_round * 4, output += (bytes_per_vec * 4), input += (bytes_per_round * 4))
     {
 
         // load input data into vector register
-        svuint8_t vec_1 = svld1(predicate8, (uint8_t *)input);
-        input += input_slice;
-        svuint8_t vec_2 = svld1(predicate8, (uint8_t *)input);
-        input += input_slice;
+        svuint8_t vec0 = svld1(predicate8, (uint8_t *)(input + bytes_per_round * 0));
+        svuint8_t vec1 = svld1(predicate8, (uint8_t *)(input + bytes_per_round * 1));
+        svuint8_t vec2 = svld1(predicate8, (uint8_t *)(input + bytes_per_round * 2));
+        svuint8_t vec3 = svld1(predicate8, (uint8_t *)(input + bytes_per_round * 3));
 
-        vec_1 = svtbl(vec_1, vec_lookup_table);
-        vec_2 = svtbl(vec_2, vec_lookup_table);
+        vec0 = svtbl(vec0, vec_lookup_table);
+        vec1 = svtbl(vec1, vec_lookup_table);
+        vec2 = svtbl(vec2, vec_lookup_table);
+        vec3 = svtbl(vec3, vec_lookup_table);
 
-        // populate vector registers with shift values
-        svuint32_t vec_shift_ac = svdup_u32(0x04000040);
-        svuint32_t vec_shift_bd = svdup_u32(0x01000010);
+        vec0 = svreinterpret_u8(svbdep(svreinterpret_u32(vec0), pdep_mask_vec));
+        vec1 = svreinterpret_u8(svbdep(svreinterpret_u32(vec1), pdep_mask_vec));
+        vec2 = svreinterpret_u8(svbdep(svreinterpret_u32(vec2), pdep_mask_vec));
+        vec3 = svreinterpret_u8(svbdep(svreinterpret_u32(vec3), pdep_mask_vec));
 
-        svuint32_t data_1 = svreinterpret_u32(vec_1);
-        svuint32_t data_2 = svreinterpret_u32(vec_2);
+        svuint32_t zero_vec = svdup_n_u32(0x00000000);
 
-        // mask out indices ac and bd
-        svuint32_t vec_ac_1 = svand_m(predicate32Max, data_1, 0x0FC0FC00);
-        svuint32_t vec_ac_2 = svand_m(predicate32Max, data_2, 0x0FC0FC00);
-        svuint32_t vec_bd_1 = svand_m(predicate32Max, data_1, 0x003F03F0);
-        svuint32_t vec_bd_2 = svand_m(predicate32Max, data_2, 0x003F03F0);
+        svuint32_t vec_index0 = svrevb_m(zero_vec, predicate32Max, svreinterpret_u32(vec0));
+        svuint32_t vec_index1 = svrevb_m(zero_vec, predicate32Max, svreinterpret_u32(vec1));
+        svuint32_t vec_index2 = svrevb_m(zero_vec, predicate32Max, svreinterpret_u32(vec2));
+        svuint32_t vec_index3 = svrevb_m(zero_vec, predicate32Max, svreinterpret_u32(vec3));
 
-        svuint16_t vec_shifted_ac_1 = svmulh_m(predicate16Max, svreinterpret_u16(vec_ac_1), svreinterpret_u16(vec_shift_ac));
-        svuint16_t vec_shifted_ac_2 = svmulh_m(predicate16Max, svreinterpret_u16(vec_ac_2), svreinterpret_u16(vec_shift_ac));
-        svuint16_t vec_shifted_bd_1 = svmul_m(predicate16Max, svreinterpret_u16(vec_bd_1), svreinterpret_u16(vec_shift_bd));
-        svuint16_t vec_shifted_bd_2 = svmul_m(predicate16Max, svreinterpret_u16(vec_bd_2), svreinterpret_u16(vec_shift_bd));
+        svuint8_t saturated_vec0 = svqsub(svreinterpret_u8(vec_index0), 51);
+        svuint8_t saturated_vec1 = svqsub(svreinterpret_u8(vec_index1), 51);
+        svuint8_t saturated_vec2 = svqsub(svreinterpret_u8(vec_index2), 51);
+        svuint8_t saturated_vec3 = svqsub(svreinterpret_u8(vec_index3), 51);
 
-        // first step finished
-        svuint32_t vec_index_1 = svorr_m(predicate32Max, svreinterpret_u32(vec_shifted_ac_1), svreinterpret_u32(vec_shifted_bd_1));
-        svuint32_t vec_index_2 = svorr_m(predicate32Max, svreinterpret_u32(vec_shifted_ac_2), svreinterpret_u32(vec_shifted_bd_2));
+        svbool_t mask_lower_26_0 = svcmplt_n_u8(predicateMax, svreinterpret_u8(vec_index0), 26);
+        svbool_t mask_lower_26_1 = svcmplt_n_u8(predicateMax, svreinterpret_u8(vec_index1), 26);
+        svbool_t mask_lower_26_2 = svcmplt_n_u8(predicateMax, svreinterpret_u8(vec_index2), 26);
+        svbool_t mask_lower_26_3 = svcmplt_n_u8(predicateMax, svreinterpret_u8(vec_index3), 26);
 
-        // saturated substraction
-        svuint8_t saturated_vec_1 = svqsub(svreinterpret_u8(vec_index_1), 51);
-        svuint8_t saturated_vec_2 = svqsub(svreinterpret_u8(vec_index_2), 51);
+        const svuint8_t vec_lookup0 = svadd_m(mask_lower_26_0, saturated_vec0, 13);
+        const svuint8_t vec_lookup1 = svadd_m(mask_lower_26_1, saturated_vec1, 13);
+        const svuint8_t vec_lookup2 = svadd_m(mask_lower_26_2, saturated_vec2, 13);
+        const svuint8_t vec_lookup3 = svadd_m(mask_lower_26_3, saturated_vec3, 13);
 
-        // extract mask of values lower than 26
-        svbool_t mask_lower_26_1 = svcmplt_n_u8(predicateMax, svreinterpret_u8(vec_index_1), 26);
-        svbool_t mask_lower_26_2 = svcmplt_n_u8(predicateMax, svreinterpret_u8(vec_index_2), 26);
+        svint8_t shuffled_offset_vec0 = svtbl(offset_vec, vec_lookup0);
+        svint8_t shuffled_offset_vec1 = svtbl(offset_vec, vec_lookup1);
+        svint8_t shuffled_offset_vec2 = svtbl(offset_vec, vec_lookup2);
+        svint8_t shuffled_offset_vec3 = svtbl(offset_vec, vec_lookup3);
 
-        // all values, which were lower than 26 will be set to 13
-        const svuint8_t vec_lookup_1 = svadd_m(mask_lower_26_1, saturated_vec_1, 13);
-        const svuint8_t vec_lookup_2 = svadd_m(mask_lower_26_2, saturated_vec_2, 13);
+        const svint8_t ascii_vec0 = svadd_m(predicateMax, svreinterpret_s8(vec_index0), shuffled_offset_vec0);
+        const svint8_t ascii_vec1 = svadd_m(predicateMax, svreinterpret_s8(vec_index1), shuffled_offset_vec1);
+        const svint8_t ascii_vec2 = svadd_m(predicateMax, svreinterpret_s8(vec_index2), shuffled_offset_vec2);
+        const svint8_t ascii_vec3 = svadd_m(predicateMax, svreinterpret_s8(vec_index3), shuffled_offset_vec3);
 
-        // register shuffle with offset vector
-        svint8_t shuffled_offset_vec_1 = svtbl(offset_vec, vec_lookup_1);
-        svint8_t shuffled_offset_vec_2 = svtbl(offset_vec, vec_lookup_2);
-
-        // add offset values to the indices to compute base64 characters without memory lookup
-        const svint8_t ascii_vec_1 = svadd_m(predicateMax, svreinterpret_s8(vec_index_1), shuffled_offset_vec_1);
-        const svint8_t ascii_vec_2 = svadd_m(predicateMax, svreinterpret_s8(vec_index_2), shuffled_offset_vec_2);
-
-        // store whole vector register to memory
-        svst1(predicateMax, (int8_t *)output, ascii_vec_1);
-        output += bytes_per_vec;
-        svst1(predicateMax, (int8_t *)output, ascii_vec_2);
-        output += bytes_per_vec;
+        svst1(predicateMax, (int8_t *)(output + bytes_per_vec * 0), ascii_vec0);
+        svst1(predicateMax, (int8_t *)(output + bytes_per_vec * 1), ascii_vec1);
+        svst1(predicateMax, (int8_t *)(output + bytes_per_vec * 2), ascii_vec2);
+        svst1(predicateMax, (int8_t *)(output + bytes_per_vec * 3), ascii_vec3);
     }
     // because we process 'bytes_per_round' bytes in each loop iteration,
     // there may be more data to be encoded if length % bytes_per_round != 0, this data will be encoded with a scalar encoding algorithm
