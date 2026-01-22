@@ -36,8 +36,9 @@ int main(void)
     char output[encoded_length];
     char output2[encoded_length];
 
-    base64sve_encode_bdep(data, output, N);
-    base64sve_encode_bdep(data, output2, N);
+    // base64sve_encode_shift(data, output, N);
+    base64sve_encode_bdepx4(data, output, N);
+    base64sve_encode_shift(data, output2, N);
 
 
     for (int i = 0; i < encoded_length; i++)
